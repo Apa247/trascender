@@ -27,7 +27,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if ! docker compose version &> /dev/null; then
     echo -e "${RED}❌ Docker Compose is not installed${NC}"
     exit 1
 fi
@@ -61,11 +61,11 @@ fi
 
 # Build services
 echo -e "${BLUE}🏗️ Building Docker services...${NC}"
-docker-compose build vault
+docker compose build vault
 
 # Start Vault
 echo -e "${BLUE}🚀 Starting Vault service...${NC}"
-docker-compose up -d vault
+docker compose up -d vault
 
 # Wait for Vault to be ready
 echo -e "${BLUE}⏳ Waiting for Vault to be ready...${NC}"
@@ -189,7 +189,7 @@ echo -e "  ✅ Service tokens: ${BLUE}.env.tokens${NC}"
 echo ""
 echo -e "${BLUE}🚀 Next Steps:${NC}"
 echo -e "  1. Review and source the token environment: ${YELLOW}source .env.tokens${NC}"
-echo -e "  2. Start all services: ${YELLOW}docker-compose up -d${NC}"
+echo -e "  2. Start all services: ${YELLOW}docker compose up -d${NC}"
 echo -e "  3. Verify service health: ${YELLOW}./manage-vault.sh status${NC}"
 echo -e "  4. Open Vault UI: ${YELLOW}./manage-vault.sh ui${NC}"
 echo ""

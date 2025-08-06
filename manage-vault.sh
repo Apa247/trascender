@@ -41,7 +41,7 @@ check_vault_container() {
     if ! docker ps | grep -q "hashicorp_vault.*Up"; then
         echo -e "${RED}❌ Vault container is not running!${NC}"
         echo "Please start the Vault container first:"
-        echo "  docker-compose up -d vault"
+        echo "  docker compose up -d vault"
         exit 1
     fi
 }
@@ -194,13 +194,13 @@ case "${1:-help}" in
         echo -e "${BLUE}📥 Restoring Vault from backup...${NC}"
         
         # Stop Vault container
-        docker-compose stop vault
+        docker compose stop vault
         
         # Restore configuration
         cp -r "$BACKUP_PATH/vault"/* "$VAULT_DIR/"
         
         # Start Vault container
-        docker-compose up -d vault
+        docker compose up -d vault
         wait_for_vault
         
         # Restore data if backup exists

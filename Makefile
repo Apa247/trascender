@@ -15,11 +15,11 @@ ip:
 
 all: prepare build vault-init up
 
-vault-deploy: prepare build vault-setup up
+vault-deploy: prepare vault-build vault-setup vault-up
 	@echo "🎉 Vault deployment completed!"
 	@echo "🔑 Access Vault UI at: http://localhost:8200/ui"
-	@echo "📊 Check services: make show"
-	@echo "🔍 Vault status: make vault-status"
+	@echo "� Vault status: make vault-status"
+	@echo "� To deploy all services: make all"
 
 prepare:
 	mkdir -p "$(HOME)/data/transcendence/sqlite"
@@ -57,6 +57,18 @@ prepare:
 
 build:
 	@$(COMPOSE) build
+
+vault-build:
+	@echo "🔨 Building Vault container..."
+	@$(COMPOSE) build vault
+
+vault-up:
+	@echo "🚀 Starting Vault service..."
+	@$(COMPOSE) up -d vault
+
+vault-down:
+	@echo "🛑 Stopping Vault service..."
+	@$(COMPOSE) down vault
 
 up:
 	@$(COMPOSE) up -d
