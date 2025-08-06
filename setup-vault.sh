@@ -65,7 +65,7 @@ docker compose build vault
 
 # Start Vault
 echo -e "${BLUE}🚀 Starting Vault service...${NC}"
-docker compose up -d vault
+docker compose up -d --force-recreate --remove-orphans vault
 
 # Wait for Vault to be ready
 echo -e "${BLUE}⏳ Waiting for Vault to be ready...${NC}"
@@ -73,7 +73,7 @@ max_attempts=30
 attempt=0
 
 while [ $attempt -lt $max_attempts ]; do
-    if docker exec hashicorp_vault vault status >/dev/null 2>&1; then
+    if curl -s -f http://localhost:8200/v1/sys/health >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Vault is ready!${NC}"
         break
     fi
