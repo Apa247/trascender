@@ -65,7 +65,7 @@ docker compose build vault
 
 # Start Vault
 echo -e "${BLUE}🚀 Starting Vault service...${NC}"
-docker compose up -d --force-recreate --remove-orphans vault
+echo "y" | docker compose up -d --force-recreate --remove-orphans vault
 
 # Wait for Vault to be ready
 echo -e "${BLUE}⏳ Waiting for Vault to be ready...${NC}"
@@ -79,6 +79,7 @@ while [ $attempt -lt $max_attempts ]; do
     fi
     sleep 2
     ((attempt++))
+    echo -e "${YELLOW}⏳ Attempt $attempt/$max_attempts - waiting for Vault...${NC}"
 done
 
 if [ $attempt -eq $max_attempts ]; then
