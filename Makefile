@@ -93,31 +93,31 @@ shell:
 # VAULT MANAGEMENT______________________________________________________________
 vault-setup:
 	@echo "🚀 Setting up Vault..."
-	@./setup-vault.sh
+	@./vault/scripts/setup-vault.sh
 
 vault-init:
 	@echo "🔐 Initializing Vault..."
-	@./manage-vault.sh init
+	@./vault/scripts/manage-vault.sh init
 
 vault-unseal:
 	@echo "🔓 Unsealing Vault..."
-	@./manage-vault.sh unseal
+	@./vault/scripts/manage-vault.sh unseal
 
 vault-seed:
 	@echo "🌱 Seeding Vault with secrets..."
-	@./manage-vault.sh seed
+	@./vault/scripts/manage-vault.sh seed
 
 vault-status:
 	@echo "📊 Checking Vault status..."
-	@./manage-vault.sh status
+	@./vault/scripts/manage-vault.sh status
 
 vault-ui:
 	@echo "🌐 Opening Vault UI..."
-	@./manage-vault.sh ui
+	@./vault/scripts/manage-vault.sh ui
 
 vault-logs:
 	@echo "📋 Showing Vault logs..."
-	@./manage-vault.sh logs
+	@./vault/scripts/manage-vault.sh logs
 
 vault-renew:
 	@echo "🔄 Renewing Vault tokens..."
