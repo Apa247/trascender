@@ -13,7 +13,9 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DATA_PATH="/tmp/trascender-data"
+# Use the same DATA_PATH as the main project
+DATA_PATH="${DATA_PATH:-${HOME}/data/transcendence}"
+export DATA_PATH
 
 echo -e "${BLUE}🚀 Trascender Vault Setup Script${NC}"
 echo -e "${BLUE}=================================${NC}"
@@ -48,15 +50,39 @@ echo -e "${GREEN}✅ Data directories created at $DATA_PATH${NC}"
 # Create environment file
 echo -e "${BLUE}📄 Setting up environment file...${NC}"
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
-    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
+    # Create a basic .env file
+    cat > "$SCRIPT_DIR/.env" << EOF
+# Vault Configuration - TLS enabled
+VAULT_ADDR=https://localhost:8200
+VAULT_SKIP_VERIFY=true
+DATA_PATH=$DATA_PATH
+
+# Basic configuration
+COMPOSE_PROJECT_NAME=trascender
+MACHINE_IP=localhost
+EOF
     
-    # Update DATA_PATH in .env
-    sed -i "s|DATA_PATH=.*|DATA_PATH=$DATA_PATH|" "$SCRIPT_DIR/.env"
-    
-    echo -e "${GREEN}✅ Environment file created from template${NC}"
+    echo -e "${GREEN}✅ Environment file created${NC}"
     echo -e "${YELLOW}💡 Review and modify .env file if needed${NC}"
 else
-    echo -e "${YELLOW}⚠️ .env file already exists, skipping...${NC}"
+    echo -e "${YELLOW}⚠️ .env file already exists, updating DATA_PATH...${NC}"
+    sed -i "s|DATA_PATH=.*|DATA_PATH=$DATA_PATH|" "$SCRIPT_DIR/.env"
+    sed -i "s|VAULT_ADDR=.*|VAULT_ADDR=https://localhost:8200|" "$SCRIPT_DIR/.env"
+    # Add VAULT_SKIP_VERIFY if not present
+    if ! grep -q "VAULT_SKIP_VERIFY" "$SCRIPT_DIR/.env"; then
+        echo "VAULT_SKIP_VERIFY=true" >> "$SCRIPT_DIR/.env"
+    fi
+fi
+
+# Generate TLS certificates
+echo -e "${BLUE}🔐 Generating TLS certificates...${NC}"
+if [ ! -f "$SCRIPT_DIR/../certs/vault.crt" ]; then
+    "$SCRIPT_DIR/generate-certs.sh" || {
+        echo -e "${RED}❌ Failed to generate certificates${NC}"
+        exit 1
+    }
+else
+    echo -e "${GREEN}✅ TLS certificates already exist${NC}"
 fi
 
 # Build services
@@ -65,14 +91,14 @@ docker compose build vault
 
 # Start Vault
 echo -e "${BLUE}🚀 Starting Vault service...${NC}"
-echo "y" | docker compose up -d --force-recreate --remove-orphans vault
+docker compose up -d vault
 
 # Wait for Vault to be ready
 echo -e "${BLUE}⏳ Waiting for Vault to respond...${NC}"
 sleep 10
 
 # Verify Vault is responding
-if ! curl -s --connect-timeout 5 http://localhost:8200/v1/sys/health >/dev/null 2>&1; then
+if ! curl -k -s --connect-timeout 5 https://localhost:8200/v1/sys/health >/dev/null 2>&1; then
     echo -e "${RED}❌ Vault failed to start${NC}"
     echo -e "${RED}Check container logs: docker logs hashicorp_vault${NC}"
     exit 1
@@ -84,7 +110,7 @@ echo -e "${GREEN}✅ Vault is responding!${NC}"
 echo -e "${BLUE}🔐 Checking Vault initialization status...${NC}"
 
 # Check if Vault is already initialized
-VAULT_STATUS=$(curl -s http://localhost:8200/v1/sys/health)
+VAULT_STATUS=$(curl -k -s https://localhost:8200/v1/sys/health)
 IS_INITIALIZED=$(echo "$VAULT_STATUS" | jq -r '.initialized // false')
 IS_SEALED=$(echo "$VAULT_STATUS" | jq -r '.sealed // true')
 
@@ -97,7 +123,8 @@ if [ "$IS_INITIALIZED" = "false" ]; then
     
     # Initialize Vault directly with docker exec
     INIT_OUTPUT=$(docker exec hashicorp_vault sh -c '
-        export VAULT_ADDR=http://localhost:8200
+        export VAULT_ADDR=https://localhost:8200
+        export VAULT_SKIP_VERIFY=true
         vault operator init -key-shares=3 -key-threshold=2 -format=json
     ')
     
@@ -136,7 +163,8 @@ if [ "$IS_SEALED" = "true" ]; then
     echo -e "${BLUE}🔓 Unsealing Vault...${NC}"
     
     docker exec hashicorp_vault sh -c "
-        export VAULT_ADDR=http://localhost:8200
+        export VAULT_ADDR=https://localhost:8200
+        export VAULT_SKIP_VERIFY=true
         vault operator unseal $UNSEAL_KEY_1
         vault operator unseal $UNSEAL_KEY_2
     "
@@ -155,7 +183,8 @@ fi
 echo -e "${BLUE}🔧 Configuring Vault secrets engine and policies...${NC}"
 
 docker exec hashicorp_vault sh -c "
-    export VAULT_ADDR=http://localhost:8200
+    export VAULT_ADDR=https://localhost:8200
+    export VAULT_SKIP_VERIFY=true
     export VAULT_TOKEN=$ROOT_TOKEN
     
     # Enable KV secrets engine if not already enabled
@@ -196,7 +225,8 @@ fi
 echo -e "${BLUE}🔑 Creating service tokens...${NC}"
 
 SERVICE_TOKENS=$(docker exec hashicorp_vault sh -c "
-    export VAULT_ADDR=http://localhost:8200
+    export VAULT_ADDR=https://localhost:8200
+    export VAULT_SKIP_VERIFY=true
     export VAULT_TOKEN=$ROOT_TOKEN
     
     # Create tokens for each service
@@ -261,7 +291,7 @@ fi
 
 # Final status check
 echo -e "${BLUE}🔍 Final status check...${NC}"
-FINAL_STATUS=$(curl -s http://localhost:8200/v1/sys/health)
+FINAL_STATUS=$(curl -k -s https://localhost:8200/v1/sys/health)
 IS_READY=$(echo "$FINAL_STATUS" | jq -r '.initialized and (.sealed | not)')
 
 if [ "$IS_READY" = "true" ]; then
@@ -277,21 +307,24 @@ echo -e "${GREEN}🎉 Vault setup completed successfully!${NC}"
 echo -e "${GREEN}=================================${NC}"
 echo ""
 echo -e "${BLUE}📊 Summary:${NC}"
-echo -e "  ✅ Vault server running on: ${BLUE}http://localhost:8200${NC}"
-echo -e "  ✅ Vault UI available at: ${BLUE}http://localhost:8200/ui${NC}"
+echo -e "  ✅ Vault server running on: ${BLUE}https://localhost:8200${NC}"
+echo -e "  ✅ Vault UI available at: ${BLUE}https://localhost:8200/ui${NC}"
 echo -e "  ✅ Root token: ${YELLOW}$ROOT_TOKEN${NC}"
 echo -e "  ✅ Data directory: ${BLUE}$DATA_PATH${NC}"
+echo -e "  ✅ TLS certificates: ${BLUE}vault/certs/${NC}"
 echo -e "  ✅ Configuration files: ${BLUE}vault/generated/vault-keys.json, vault/generated/service-tokens.json${NC}"
 echo -e "  ✅ Environment tokens: ${BLUE}vault/generated/.env.tokens${NC}"
 echo ""
 echo -e "${BLUE}🚀 Next Steps:${NC}"
 echo -e "  1. Review tokens: ${YELLOW}cat vault/generated/.env.tokens${NC}"
 echo -e "  2. Start all services: ${YELLOW}docker compose up -d${NC}"
-echo -e "  3. Open Vault UI: ${YELLOW}open http://localhost:8200/ui${NC}"
+echo -e "  3. Open Vault UI: ${YELLOW}open https://localhost:8200/ui${NC}"
 echo -e "  4. Login with root token: ${YELLOW}$ROOT_TOKEN${NC}"
 echo ""
 echo -e "${YELLOW}⚠️ Important Security Notes:${NC}"
 echo -e "  🔐 Backup vault/generated/vault-keys.json and vault/generated/service-tokens.json securely"
 echo -e "  🔐 Store tokens in a secure location"
-echo -e "  🔐 Consider enabling TLS for production use"
+echo -e "  🔐 TLS is enabled with self-signed certificates for development"
+echo -e "  🔐 For production, use certificates from a trusted CA"
+echo -e "  🔐 Trust the CA certificate in vault/certs/ca.crt for clients"
 echo ""

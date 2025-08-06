@@ -64,7 +64,7 @@ vault-build:
 
 vault-up:
 	@echo "🚀 Starting Vault service..."
-	@$(COMPOSE) up -d vault
+	@$(COMPOSE) up -d  vault
 
 vault-down:
 	@echo "🛑 Stopping Vault service..."
@@ -150,6 +150,9 @@ fclean: clean
 	@echo "Cleaning up Vault files and tokens..."
 	@rm -f vault/scripts/vault-keys.json vault/scripts/service-tokens.json .env.tokens .env.generated 2>/dev/null || true
 	@rm -f vault-keys.json service-tokens.json .env.vault .env.tokens 2>/dev/null || true
+	@rm -rf vault/generated/* vault/generated/.* 2>/dev/null || true
+	@echo "Cleaning up Vault certificates..."
+	@rm -rf vault/certs/* vault/certs/.* 2>/dev/null || true
 	@echo "Removing data directories..."
 	@sudo rm -rf "$(DATA_PATH)" 2>/dev/null || true
 	@sudo rm -rf "/tmp/trascender-data" 2>/dev/null || true

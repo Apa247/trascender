@@ -7,19 +7,18 @@ storage "file" {
   path = "/vault/file"
 }
 
-# Listener configuration
+# Listener configuration - TLS enabled for production
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = true
-  # For production, enable TLS:
-  # tls_disable = false
-  # tls_cert_file = "/vault/certs/vault.crt"
-  # tls_key_file = "/vault/certs/vault.key"
+  address         = "0.0.0.0:8200"
+  tls_disable     = false
+  tls_cert_file   = "/vault/certs/vault.crt"
+  tls_key_file    = "/vault/certs/vault.key"
+  tls_min_version = "tls12"
 }
 
-# API address (how Vault advertises itself)
-api_addr = "http://vault:8200"
-cluster_addr = "http://vault:8201"
+# API address (how Vault advertises itself) - HTTPS enabled
+api_addr = "https://vault:8200"
+cluster_addr = "https://vault:8201"
 
 # Disable mlock for containerized environments
 disable_mlock = true
