@@ -100,6 +100,29 @@ vault/
 
 ### 💻 Uso Básico
 
+#### Integración con Makefile
+El proyecto incluye integración completa con Makefile que simplifica todas las operaciones de Vault:
+
+```bash
+# Ver todos los comandos disponibles
+make help
+
+# Comandos específicos de Vault
+make vault-help
+```
+
+**Comparación de métodos:**
+
+| Operación | Comando Make | Script Directo |
+|-----------|--------------|----------------|
+| Despliegue completo | `make vault-deploy` | `./setup-vault.sh` |
+| Ver estado | `make vault-status` | `./manage-vault.sh status` |
+| Abrir UI | `make vault-ui` | `./manage-vault.sh ui` |
+| Desbloquear | `make vault-unseal` | `./manage-vault.sh unseal` |
+| Renovar tokens | `make vault-renew` | `./manage-vault.sh renew` |
+| Crear backup | `make vault-backup` | `./manage-vault.sh backup` |
+| Ver logs | `make vault-logs` | `./manage-vault.sh logs` |
+
 #### Script de Gestión
 El script `manage-vault.sh` proporciona comandos simples para gestionar Vault:
 
@@ -142,7 +165,172 @@ vault secrets list
 vault kv list secret/
 ```
 
-### 🔐 Gestión de Secretos
+### �️ Integración con Makefile
+
+#### Arquitectura de Integración
+
+El sistema de Vault está completamente integrado con el Makefile del proyecto, proporcionando una interfaz unificada para la gestión de servicios y secretos.
+
+```
+Makefile
+├── 📦 BUILD & DEPLOYMENT
+│   ├── all-auto           # Incluye vault-setup automático
+│   ├── all                # Incluye vault-init
+│   └── vault-deploy       # Despliegue completo especializado
+├── 🔐 VAULT MANAGEMENT
+│   ├── vault-setup        # Configuración automatizada completa
+│   ├── vault-init         # Inicialización manual
+│   ├── vault-unseal       # Desbloqueo
+│   ├── vault-seed         # Poblado de secretos
+│   ├── vault-status       # Verificación de estado
+│   ├── vault-ui           # Interfaz web
+│   ├── vault-logs         # Visualización de logs
+│   ├── vault-renew        # Renovación de tokens
+│   ├── vault-backup       # Respaldos
+│   └── vault-help         # Ayuda específica
+└── 🧹 CLEANUP
+    ├── clean              # Parada de servicios
+    └── fclean             # Limpieza completa (incluye Vault)
+```
+
+#### Objetivos de Construcción
+
+**`make all-auto`**
+- Ejecuta: `ip set-ip prepare build vault-setup up`
+- Incluye configuración automática de IP y setup completo de Vault
+- Ideal para despliegues en nuevos entornos
+
+**`make all`**
+- Ejecuta: `prepare build vault-init up`
+- Setup estándar con inicialización manual de Vault
+- Para entornos donde se requiere control granular
+
+**`make vault-deploy`**
+- Ejecuta: `prepare build vault-setup up`
+- Especializado en despliegue con Vault
+- Incluye mensajes informativos post-despliegue
+
+#### Gestión de Directorios
+
+El objetivo `prepare` fue extendido para incluir directorios específicos de Vault:
+
+```makefile
+prepare:
+    # ... otros directorios ...
+    mkdir -p "$(HOME)/data/transcendence/vault"
+    chmod -R 755 "$(HOME)/data/transcendence/vault"
+    
+    mkdir -p "$(HOME)/data/transcendence/vault-logs"
+    chmod -R 755 "$(HOME)/data/transcendence/vault-logs"
+```
+
+**Características técnicas:**
+- Permisos 755 para seguridad (más restrictivo que otros servicios)
+- Separación de datos y logs
+- Integración con variable `DATA_PATH`
+
+#### Limpieza Avanzada
+
+El objetivo `fclean` incluye limpieza específica de Vault:
+
+```makefile
+fclean: clean
+    # Contenedores específicos
+    @docker stop hashicorp_vault 2>/dev/null || true
+    @docker rm hashicorp_vault 2>/dev/null || true
+    
+    # Archivos sensibles
+    @rm -f vault/scripts/vault-keys.json 2>/dev/null || true
+    @rm -f vault/scripts/service-tokens.json 2>/dev/null || true
+    @rm -f .env.tokens .env.generated 2>/dev/null || true
+```
+
+#### Comandos Vault Específicos
+
+Cada comando `make vault-*` ejecuta el script correspondiente con logging mejorado:
+
+```makefile
+vault-status:
+    @echo "📊 Checking Vault status..."
+    @./manage-vault.sh status
+
+vault-ui:
+    @echo "🌐 Opening Vault UI..."
+    @./manage-vault.sh ui
+```
+
+#### Sistema de Ayuda
+
+**`make help`**
+- Muestra todos los comandos categorizados
+- Incluye sección específica "🔐 VAULT MANAGEMENT"
+- Proporciona guía de inicio rápido
+
+**`make vault-help`**
+- Delega al script de gestión: `./manage-vault.sh help`
+- Mantiene consistencia entre interfaces
+
+#### Variables de Entorno y Paths
+
+```makefile
+COMPOSE = /usr/bin/docker compose -f docker-compose.yml --env-file .env
+PROJECT_NAME := transcendence
+DATA_PATH ?= $(HOME)/data/$(PROJECT_NAME)
+export DATA_PATH
+```
+
+**Integración técnica:**
+- `DATA_PATH` exportada globalmente
+- Compatibilidad con scripts de Vault
+- Configuración centralizada en `.env`
+
+#### Dependencias y Orden de Ejecución
+
+Los objetivos siguen un orden lógico de dependencias:
+
+```
+vault-deploy: prepare build vault-setup up
+│
+├── prepare     # Crea directorios (incluye Vault)
+├── build       # Construye imágenes Docker
+├── vault-setup # Ejecuta setup-vault.sh completo
+└── up          # Inicia todos los servicios
+```
+
+#### Integración con Docker Compose
+
+Los comandos Make utilizan la variable `COMPOSE` que incluye:
+- Archivo de configuración específico
+- Variables de entorno desde `.env`
+- Compatibilidad con scripts de Vault
+
+#### PHONY Targets
+
+Todos los objetivos de Vault están declarados como PHONY:
+
+```makefile
+.PHONY: vault-setup vault-init vault-unseal vault-seed vault-status \
+        vault-ui vault-logs vault-renew vault-backup vault-help vault-deploy
+```
+
+Esto garantiza que siempre se ejecuten, independientemente de archivos con nombres similares.
+
+#### Flujo de Datos
+
+```
+make vault-deploy
+├── Crea DATA_PATH/vault (prepare)
+├── Construye imagen vault (build)  
+├── Ejecuta setup-vault.sh (vault-setup)
+│   ├── Inicializa Vault
+│   ├── Crea vault-keys.json
+│   ├── Genera service-tokens.json
+│   └── Pobla secretos iniciales
+├── Inicia servicios (up)
+└── Muestra información post-despliegue
+```
+
+### �🔐 Gestión de Secretos
 
 #### Estructura de Secretos
 ```
