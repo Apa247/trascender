@@ -147,10 +147,12 @@ fclean: clean
 	docker network rm transcendence_net || true
 	@echo "Pruning volumes..."
 	@docker volume prune -f 2>/dev/null || true
-	@echo "Cleaning up Vault keys and tokens..."
+	@echo "Cleaning up Vault files and tokens..."
 	@rm -f vault/scripts/vault-keys.json vault/scripts/service-tokens.json .env.tokens .env.generated 2>/dev/null || true
-	@echo "Removing data directory..."
-	@sudo rm -rf "$(DATA_PATH)"
+	@rm -f vault-keys.json service-tokens.json .env.vault .env.tokens 2>/dev/null || true
+	@echo "Removing data directories..."
+	@sudo rm -rf "$(DATA_PATH)" 2>/dev/null || true
+	@sudo rm -rf "/tmp/trascender-data" 2>/dev/null || true
 
 # REBUILD_______________________________________________________________________
 quick-re: clean
