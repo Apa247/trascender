@@ -38,7 +38,7 @@ print_usage() {
 }
 
 check_vault_container() {
-    if ! docker ps | grep -q "hashicorp_vault.*Up"; then
+    if ! docker ps | grep -q "hashicorp_vault"; then
         echo -e "${RED}❌ Vault container is not running!${NC}"
         echo "Please start the Vault container first:"
         echo "  docker compose up -d vault"

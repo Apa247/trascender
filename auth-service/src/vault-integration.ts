@@ -1,5 +1,5 @@
 // vault-integration.ts - Integration example for Vault in auth-service
-import { VaultClient, initializeVault, getVaultClient } from '../../shared/vault-client';
+// import { VaultClient, initializeVault, getVaultClient } from '../../shared/vault-client';
 
 interface AuthServiceConfig {
   jwtSecret: string;
