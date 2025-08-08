@@ -59,12 +59,18 @@ build:
 	@$(COMPOSE) build
 
 vault-build:
-	@echo "🔨 Building Vault container..."
+	@echo "� Generando certificados TLS para Vault..."
+	./vault/scripts/generate-certs.sh
+	@echo "�🔨 Building Vault container..."
 	@$(COMPOSE) build vault
 
 vault-up:
 	@echo "🚀 Starting Vault service..."
-	@$(COMPOSE) up -d  vault
+	@$(COMPOSE) up -d vault
+	@echo "⏳ Inicializando Vault..."
+	@./vault/scripts/manage-vault.sh init
+	@echo "🔓 Des-sellando Vault..."
+	@./vault/scripts/manage-vault.sh unseal
 
 vault-down:
 	@echo "🛑 Stopping Vault service..."

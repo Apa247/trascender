@@ -48,15 +48,15 @@ check_vault_container() {
 
 wait_for_vault() {
     echo -e "${BLUE}⏳ Waiting for Vault to be ready...${NC}"
-    local max_attempts=30
+    local max_attempts=60
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if docker exec hashicorp_vault vault status >/dev/null 2>&1; then
+        if docker exec -e VAULT_ADDR=https://vault:8200 -e VAULT_SKIP_VERIFY=true hashicorp_vault vault status >/dev/null 2>&1; then
             echo -e "${GREEN}✅ Vault is ready!${NC}"
             return 0
         fi
-        sleep 2
+        sleep 3
         ((attempt++))
     done
     
@@ -76,7 +76,7 @@ case "${1:-help}" in
             exit 0
         fi
         
-        docker exec -e VAULT_ADDR=http://localhost:8200 hashicorp_vault /vault/scripts/init-vault.sh
+    docker exec -e VAULT_ADDR=https://vault:8200 -e VAULT_SKIP_VERIFY=true hashicorp_vault /vault/scripts/init-vault.sh
         
         # Copy keys and tokens to host for backup
         docker cp hashicorp_vault:/vault/scripts/vault-keys.json "$VAULT_DIR/scripts/"
@@ -98,7 +98,7 @@ case "${1:-help}" in
             exit 1
         fi
         
-        docker exec -e VAULT_ADDR=http://localhost:8200 hashicorp_vault /vault/scripts/unseal-vault.sh
+    docker exec -e VAULT_ADDR=https://vault:8200 -e VAULT_SKIP_VERIFY=true hashicorp_vault /vault/scripts/unseal-vault.sh
         ;;
         
     "seed")

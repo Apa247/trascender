@@ -1,18 +1,22 @@
-FROM hashicorp/vault:1.15
+FROM hashicorp/vault:1.15.6
 
 # Set working directory
 WORKDIR /vault
 
-# Copy configuration files
+
+
+
+# Crear los directorios necesarios como root
+USER root
+RUN mkdir -p /vault/file /vault/logs /vault/plugins /vault/certs
+
+# Copy configuration and scripts as root, then set permissions
 COPY config/vault.hcl /vault/config/vault.hcl
 COPY policies/ /vault/policies/
 COPY scripts/ /vault/scripts/
 
-# Create necessary directories
-RUN mkdir -p /vault/file /vault/logs /vault/plugins /vault/certs
-
-# Make scripts executable
-RUN chmod +x /vault/scripts/*.sh
+# Change to vault user for runtime
+USER vault
 
 # Expose Vault port
 EXPOSE 8200 8201
