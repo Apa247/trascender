@@ -186,7 +186,7 @@ docker exec hashicorp_vault sh -c "
     export VAULT_ADDR=https://localhost:8200
     export VAULT_SKIP_VERIFY=true
     export VAULT_TOKEN=$ROOT_TOKEN
-    
+
     # Enable KV secrets engine if not already enabled
     if ! vault secrets list | grep -q 'secret/'; then
         echo 'Enabling KV secrets engine...'
@@ -194,24 +194,16 @@ docker exec hashicorp_vault sh -c "
     else
         echo 'KV secrets engine already enabled'
     fi
-    
-    # Create basic policies
-    echo 'Creating admin policy...'
-    vault policy write admin-policy - <<EOF
-path \"*\" {
-  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"]
-}
-EOF
 
-    echo 'Creating service policies...'
-    vault policy write service-policy - <<EOF
-path \"secret/data/services/*\" {
-  capabilities = [\"create\", \"read\", \"update\", \"list\"]
-}
-path \"secret/metadata/services/*\" {
-  capabilities = [\"list\"]
-}
-EOF
+    # Crear policies desde archivos HCL
+    echo 'Creating admin policy...'
+    vault policy write admin-policy /vault/policies/admin-policy.hcl
+    echo 'Creating service policies from HCL files...'
+    vault policy write auth-service-policy /vault/policies/auth-service-policy.hcl
+    vault policy write game-service-policy /vault/policies/game-service-policy.hcl
+    vault policy write chat-service-policy /vault/policies/chat-service-policy.hcl
+    vault policy write db-service-policy /vault/policies/db-service-policy.hcl
+    vault policy write api-gateway-policy /vault/policies/api-gateway-policy.hcl
 "
 
 if [ $? -eq 0 ]; then
@@ -229,12 +221,12 @@ SERVICE_TOKENS=$(docker exec hashicorp_vault sh -c "
     export VAULT_SKIP_VERIFY=true
     export VAULT_TOKEN=$ROOT_TOKEN
     
-    # Create tokens for each service
-    AUTH_TOKEN=\$(vault write -field=token auth/token/create policies='service-policy' ttl=720h renewable=true display_name='auth-service')
-    GAME_TOKEN=\$(vault write -field=token auth/token/create policies='service-policy' ttl=720h renewable=true display_name='game-service')
-    CHAT_TOKEN=\$(vault write -field=token auth/token/create policies='service-policy' ttl=720h renewable=true display_name='chat-service')
-    DB_TOKEN=\$(vault write -field=token auth/token/create policies='service-policy' ttl=720h renewable=true display_name='db-service')
-    API_TOKEN=\$(vault write -field=token auth/token/create policies='service-policy' ttl=720h renewable=true display_name='api-gateway')
+    # Create tokens for each service con su propia policy
+    AUTH_TOKEN=\$(vault write -field=token auth/token/create policies='auth-service-policy' ttl=720h renewable=true display_name='auth-service')
+    GAME_TOKEN=\$(vault write -field=token auth/token/create policies='game-service-policy' ttl=720h renewable=true display_name='game-service')
+    CHAT_TOKEN=\$(vault write -field=token auth/token/create policies='chat-service-policy' ttl=720h renewable=true display_name='chat-service')
+    DB_TOKEN=\$(vault write -field=token auth/token/create policies='db-service-policy' ttl=720h renewable=true display_name='db-service')
+    API_TOKEN=\$(vault write -field=token auth/token/create policies='api-gateway-policy' ttl=720h renewable=true display_name='api-gateway')
     
     # Output JSON
     cat <<EOF

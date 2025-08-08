@@ -126,10 +126,7 @@ services:
       - vault_logs:/vault/logs
       - ./vault/scripts:/vault/scripts:rw
       - ./vault/certs:/vault/certs:ro
-    cap_add:
-      - IPC_LOCK
-    cap_drop:
-      - ALL
+    user: "0:0"
     networks:
       - transcendence_net
     restart: unless-stopped

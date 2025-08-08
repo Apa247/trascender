@@ -52,14 +52,15 @@ wait_for_vault() {
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if docker exec -e VAULT_ADDR=https://vault:8200 -e VAULT_SKIP_VERIFY=true hashicorp_vault vault status >/dev/null 2>&1; then
+        docker exec -e VAULT_ADDR=https://vault:8200 -e VAULT_SKIP_VERIFY=true hashicorp_vault vault status >/dev/null 2>&1
+        status_code=$?
+        if [ $status_code -eq 0 ] || [ $status_code -eq 2 ]; then
             echo -e "${GREEN}✅ Vault is ready!${NC}"
             return 0
         fi
         sleep 3
         ((attempt++))
     done
-    
     echo -e "${RED}❌ Vault failed to start within expected time${NC}"
     exit 1
 }

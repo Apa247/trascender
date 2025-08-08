@@ -1,13 +1,15 @@
 FROM hashicorp/vault:1.15.6
 
+
 # Set working directory
 WORKDIR /vault
 
 
-
+# Instalar bash en la imagen oficial de Vault (basada en Alpine)
+USER root
+RUN apk add --no-cache bash
 
 # Crear los directorios necesarios como root
-USER root
 RUN mkdir -p /vault/file /vault/logs /vault/plugins /vault/certs
 
 # Copy configuration and scripts as root, then set permissions

@@ -22,6 +22,10 @@ vault-deploy: prepare vault-build vault-setup vault-up
 	@echo "� To deploy all services: make all"
 
 prepare:
+	mkdir -p /tmp/trascender-data/vault
+	mkdir -p /tmp/trascender-data/vault-logs
+	echo "Vault data directory prepared at: /tmp/trascender-data/vault"
+	echo "Vault logs directory prepared at: /tmp/trascender-data/vault-logs"
 	mkdir -p "$(HOME)/data/transcendence/sqlite"
 	chmod -R 777 "$(HOME)/data/transcendence/sqlite"
 	@echo "SQLite data directory prepared at: $(HOME)/data/transcendence/sqlite"
@@ -66,17 +70,15 @@ vault-build:
 
 vault-up:
 	@echo "🚀 Starting Vault service..."
-	@$(COMPOSE) up -d vault
-	@echo "⏳ Inicializando Vault..."
-	@./vault/scripts/manage-vault.sh init
-	@echo "🔓 Des-sellando Vault..."
-	@./vault/scripts/manage-vault.sh unseal
+
+
 
 vault-down:
 	@echo "🛑 Stopping Vault service..."
 	@$(COMPOSE) down vault
 
 up:
+	$(MAKE) vault-setup
 	@$(COMPOSE) up -d
 
 show:
@@ -100,10 +102,6 @@ shell:
 vault-setup:
 	@echo "🚀 Setting up Vault..."
 	@./vault/scripts/setup-vault.sh
-
-vault-init:
-	@echo "🔐 Initializing Vault..."
-	@./vault/scripts/manage-vault.sh init
 
 vault-unseal:
 	@echo "🔓 Unsealing Vault..."
@@ -154,7 +152,7 @@ fclean: clean
 	@echo "Pruning volumes..."
 	@docker volume prune -f 2>/dev/null || true
 	@echo "Cleaning up Vault files and tokens..."
-	@rm -f vault/scripts/vault-keys.json vault/scripts/service-tokens.json .env.tokens .env.generated 2>/dev/null || true
+	@rm -f vault/scripts/vault-keys.json vault/scripts/service-tokens.json vault/scripts/vault-keys.txt .env.tokens .env.generated 2>/dev/null || true
 	@rm -f vault-keys.json service-tokens.json .env.vault .env.tokens 2>/dev/null || true
 	@rm -rf vault/generated/* vault/generated/.* 2>/dev/null || true
 	@echo "Cleaning up Vault certificates..."
