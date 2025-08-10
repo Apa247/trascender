@@ -78,8 +78,8 @@ vault-down:
 	@$(COMPOSE) down vault
 
 up:
-	$(MAKE) vault-setup
 	@$(COMPOSE) up -d
+	$(MAKE) vault-setup
 
 show:
 	@./show_services.sh
