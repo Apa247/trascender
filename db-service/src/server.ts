@@ -6,18 +6,14 @@ const fastify = Fastify({
     logger: true
 });
 
-
-
-// Inicializar la base de datos después de que Fastify esté listo, usando una función asíncrona autoejecutable
-(async () => {
-    try {
-        await fastify.ready();
-        await initializeDb();
-    } catch (err) {
+// Usar fastify.ready() en lugar de fastify.onReady()
+fastify.ready(async (err) => {
+    if (err) {
         fastify.log.error('Error durante la inicialización de Fastify:', err as any);
         process.exit(1);
     }
-})();
+    await initializeDb();
+});
 
 fastify.get('/users', async (request, reply) => {
     const db = await openDb();
