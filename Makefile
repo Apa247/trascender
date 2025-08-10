@@ -13,9 +13,9 @@ ip:
 	@./update_machine_ip.sh
 	@./generate_prometheus_config.sh
 
-all: prepare build vault-init up
+all: prepare build up
 
-vault-deploy: prepare vault-build vault-setup vault-up
+vault-deploy: prepare vault-build vault-setup
 	@echo "🎉 Vault deployment completed!"
 	@echo "🔑 Access Vault UI at: http://localhost:8200/ui"
 	@echo "� Vault status: make vault-status"
@@ -29,6 +29,9 @@ prepare:
 	mkdir -p "$(HOME)/data/transcendence/sqlite"
 	chmod -R 777 "$(HOME)/data/transcendence/sqlite"
 	@echo "SQLite data directory prepared at: $(HOME)/data/transcendence/sqlite"
+	
+	@echo "� Generando certificados TLS para Vault..."
+	./vault/scripts/generate-certs.sh
 
 	mkdir -p "$(HOME)/data/transcendence/redis"
 	chown -R 1000:1000 "$(HOME)/data/transcendence/redis" || true
@@ -79,7 +82,8 @@ vault-down:
 
 up:
 	@$(COMPOSE) up -d
-	$(MAKE) vault-setup
+	@echo "🚀 Ejecutando setup de Vault desde el host..."
+	@./vault/scripts/setup-vault.sh
 
 show:
 	@./show_services.sh
@@ -89,6 +93,8 @@ down:
 
 start:
 	@$(COMPOSE) start
+	@echo "🔓 Unsealing Vault..."
+	@bash vault/scripts/unseal-vault.sh
 
 stop:
 	@$(COMPOSE) stop

@@ -137,6 +137,7 @@ services:
       retries: 3
       start_period: 10s
 
+
   # WAF (Web Application Firewall) - Nginx con ModSecurity como ejemplo
   waf:
     image: owasp/modsecurity-crs:nginx

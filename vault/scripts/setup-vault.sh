@@ -21,32 +21,6 @@ echo -e "${BLUE}🚀 Trascender Vault Setup Script${NC}"
 echo -e "${BLUE}=================================${NC}"
 echo ""
 
-# Check prerequisites
-echo -e "${BLUE}📋 Checking prerequisites...${NC}"
-
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker is not installed${NC}"
-    exit 1
-fi
-
-if ! docker compose version &> /dev/null; then
-    echo -e "${RED}❌ Docker Compose is not installed${NC}"
-    exit 1
-fi
-
-if ! command -v jq &> /dev/null; then
-    echo -e "${YELLOW}⚠️ jq is not installed. Installing...${NC}"
-    sudo apt-get update && sudo apt-get install -y jq
-fi
-
-echo -e "${GREEN}✅ Prerequisites checked${NC}"
-
-# Create data directories
-echo -e "${BLUE}📁 Creating data directories...${NC}"
-sudo mkdir -p "$DATA_PATH"/{vault,vault-logs,sqlite,redis,prometheus,grafana,alertmanager}
-sudo chown -R "$USER:$USER" "$DATA_PATH"
-echo -e "${GREEN}✅ Data directories created at $DATA_PATH${NC}"
-
 # Create environment file
 echo -e "${BLUE}📄 Setting up environment file...${NC}"
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
@@ -74,24 +48,6 @@ else
     fi
 fi
 
-# Generate TLS certificates
-echo -e "${BLUE}🔐 Generating TLS certificates...${NC}"
-if [ ! -f "$SCRIPT_DIR/../certs/vault.crt" ]; then
-    "$SCRIPT_DIR/generate-certs.sh" || {
-        echo -e "${RED}❌ Failed to generate certificates${NC}"
-        exit 1
-    }
-else
-    echo -e "${GREEN}✅ TLS certificates already exist${NC}"
-fi
-
-# Build services
-echo -e "${BLUE}🏗️ Building Docker services...${NC}"
-docker compose build vault
-
-# Start Vault
-echo -e "${BLUE}🚀 Starting Vault service...${NC}"
-docker compose up -d vault
 
 # Wait for Vault to be ready
 echo -e "${BLUE}⏳ Waiting for Vault to respond...${NC}"
@@ -232,11 +188,11 @@ SERVICE_TOKENS=$(docker exec hashicorp_vault sh -c "
     cat <<EOF
 {
     \"root_token\": \"$ROOT_TOKEN\",
-    \"auth_service_token\": \"\$AUTH_TOKEN\",
-    \"game_service_token\": \"\$GAME_TOKEN\",
-    \"chat_service_token\": \"\$CHAT_TOKEN\",
-    \"db_service_token\": \"\$DB_TOKEN\",
-    \"api_gateway_token\": \"\$API_TOKEN\"
+    \"auth_service_token\": \"$AUTH_TOKEN\",
+    \"game_service_token\": \"$GAME_TOKEN\",
+    \"chat_service_token\": \"$CHAT_TOKEN\",
+    \"db_service_token\": \"$DB_TOKEN\",
+    \"api_gateway_token\": \"$API_TOKEN\"
 }
 EOF
 ")
